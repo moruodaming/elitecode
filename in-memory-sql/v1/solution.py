@@ -113,71 +113,61 @@ class SQLManager:
         self, tableName: str, conditions: List[List[str]], orderBy: List[str]
     ) -> List[int]:
         return self._table(tableName).select(conditions, orderBy)
-
-
 import unittest
 
 
 class TestSQLManager(unittest.TestCase):
-    def _usersTable(self) -> SQLManager:
-        db = SQLManager()
-        db.createTable("users", ["name", "age"])
-        db.insert("users", ["Alice", "30"])
-        db.insert("users", ["Bob", "25"])
-        db.insert("users", ["Charlie", "35"])
-        db.insert("users", ["Mary", "25"])
-        return db
+    def setUp(self) -> None:
+        self.db = SQLManager()
+        self.db.createTable("users", ["name", "age"])
+        self.db.insert("users", ["Alice", "30"])
+        self.db.insert("users", ["Bob", "25"])
+        self.db.insert("users", ["Charlie", "35"])
+        self.db.insert("users", ["Mary", "25"])
 
     def test_problem_example(self):
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [["age", ">", "28"]], []), [0, 2])
+        self.assertEqual(self.db.select("users", [["age", ">", "28"]], []), [0, 2])
         self.assertEqual(
-            db.select("users", [["age", ">", "25"], ["name", "<", "C"]], []), [0]
+            self.db.select("users", [["age", ">", "25"], ["name", "<", "C"]], []),
+            [0],
         )
         self.assertEqual(
-            db.select("users", [["age", ">", "20"]], ["name"]), [0, 1, 2, 3]
+            self.db.select("users", [["age", ">", "20"]], ["name"]), [0, 1, 2, 3]
         )
         self.assertEqual(
-            db.select("users", [["age", ">", "24"]], ["age", "name"]),
+            self.db.select("users", [["age", ">", "24"]], ["age", "name"]),
             [1, 3, 0, 2],
         )
 
     def test_no_conditions_no_order_returns_insertion_order(self):
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [], []), [0, 1, 2, 3])
+        self.assertEqual(self.db.select("users", [], []), [0, 1, 2, 3])
 
     def test_no_match(self):
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [["age", "=", "22"]], []), [])
+        self.assertEqual(self.db.select("users", [["age", "=", "22"]], []), [])
 
     def test_equality_operator(self):
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [["age", "=", "25"]], []), [1, 3])
+        self.assertEqual(self.db.select("users", [["age", "=", "25"]], []), [1, 3])
 
     def test_string_comparison(self):
-        db = self._usersTable()
         # Lexicographic comparison on a string column.
-        self.assertEqual(db.select("users", [["name", "=", "Bob"]], []), [1])
+        self.assertEqual(self.db.select("users", [["name", "=", "Bob"]], []), [1])
         self.assertEqual(
-            db.select("users", [["name", ">", "Charlie"]], []), [3]
+            self.db.select("users", [["name", ">", "Charlie"]], []), [3]
         )
 
     def test_multi_column_order_tiebreak(self):
-        db = self._usersTable()
         # Sorted by age asc, then name asc.
         self.assertEqual(
-            db.select("users", [], ["age", "name"]), [1, 3, 0, 2]
+            self.db.select("users", [], ["age", "name"]), [1, 3, 0, 2]
         )
 
     def test_descending_not_supported_uses_ascending(self):
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [], ["name"]), [0, 1, 2, 3])
+        self.assertEqual(self.db.select("users", [], ["name"]), [0, 1, 2, 3])
 
     def test_type_mismatch_filters_out(self):
         # An int-typed column compared against a non-numeric value matches nothing.
-        db = self._usersTable()
-        self.assertEqual(db.select("users", [["age", "=", "old"]], []), [])
-        self.assertEqual(db.select("users", [["age", ">", "old"]], []), [])
+        self.assertEqual(self.db.select("users", [["age", "=", "old"]], []), [])
+        self.assertEqual(self.db.select("users", [["age", ">", "old"]], []), [])
 
     def test_mixed_type_column_sorts_without_error(self):
         db = SQLManager()
@@ -203,16 +193,14 @@ class TestSQLManager(unittest.TestCase):
             db.insert("ghost", ["x"])
 
     def test_invalid_column_raises(self):
-        db = self._usersTable()
         with self.assertRaises(ValueError):
-            db.select("users", [["height", ">", "1"]], [])
+            self.db.select("users", [["height", ">", "1"]], [])
         with self.assertRaises(ValueError):
-            db.select("users", [], ["height"])
+            self.db.select("users", [], ["height"])
 
     def test_invalid_operator_raises(self):
-        db = self._usersTable()
         with self.assertRaises(ValueError):
-            db.select("users", [["age", "!=", "25"]], [])
+            self.db.select("users", [["age", "!=", "25"]], [])
 
     def test_wrong_value_count_raises(self):
         db = SQLManager()
